@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Roar.ai</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+    <style>
+        .card {
+            margin-bottom: 20px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card-title {
+            text-align: center;
+        }
+
+        .card-body {
+            text-align: left;
+        }
+
+        .btn-plan {
+            width: 100%;
+        }
+
+        .highlight {
+            transform: scale(1.1);
+            z-index: 1;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .background {
+            transform: scale(0.9);
+            z-index: 0;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-container {
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <a class="navbar-brand" href="#">Roar.ai</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h1 class="text-center">Welcome to Roar.ai</h1>
+        <div class="row mt-5 justify-content-center">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Free Trial (7 days)</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><i class="fas fa-check fa-sm"></i> Access to one account</li>
+                            <li class="list-group-item"><i class="fas fa-check fa-sm"></i> 20 connections per day</li>
+                            <li class="list-group-item"><i class="fas fa-check fa-sm"></i> 20 follow-up messages</li>
+                        </ul>
+                        <button type="button" class="btn btn-primary btn-block btn-plan" onclick="location.href='{{ url_for('register', plan='free_trial') }}'">Free Trial</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card highlight">
+                    <div class="card-body">
+                        <h5 class="card-title">Standard ($30/month)</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><i class="fas fa-check fa-sm"></i> Access to up to 4 Facebook accounts</li>
+                            <li class="list-group-item"><i class="fas fa-check fa-sm"></i> Send 20 connections from each account per day</li>
+                            <li class="list-group-item"><i class="fas fa-check fa-sm"></i> Unlimited follow-up messages for accepted connections</li>
+                        </ul>
+                        <button type="button" class="btn btn-primary btn-block btn-plan" onclick="location.href='{{ url_for('register', plan='standard') }}'">Standard Plan</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Premium ($299/month)</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><i class="fas fa-check fa-sm"></i> Access to up to 15 Facebook accounts</li>
+                            <li class="list-group-item"><i class="fas fa-check fa-sm"></i> Send 20 connections from each account per day</li>
+                            <li class="list-group-item"><i class="fas fa-check fa-sm"></i> Unlimited follow-up messages for accepted connections</li>
+                        </ul>
+                        <button type="button" class="btn btn-primary btn-block btn-plan" onclick="location.href='{{ url_for('register', plan='premium') }}'">Premium Plan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

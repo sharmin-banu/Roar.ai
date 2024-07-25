@@ -1,0 +1,54 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Arial', sans-serif;
+}
+
+.navbar {
+    background-color: #28a745;
+}
+
+.navbar-brand, .nav-link {
+    color: #ffffff !important;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-title {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.list-group-item {
+    border: none;
+    background-color: #f8f9fa;
+}
+
+.btn-primary {
+    background-color: #28a745;
+    border: none;
+}
+
+.alert-danger {
+    background-color: #dc3545;
+    color: #ffffff;
+}
+
+h1 {
+    color: #28a745;
+    font-weight: bold;
+}
+
+form {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.fa-check {
+    color: #007bff; /* Blue color for the check marks */
+    transform: rotate(-5deg) scale(0.8); /* Tilt and scale down the check mark */
+}

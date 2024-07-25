@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Account - Roar.ai</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        .password-requirements {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <a class="navbar-brand" href="#">Roar.ai</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('register') }}">Create Account</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h1 class="text-center">Create Account</h1>
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-6">
+                <form method="POST" action="{{ url_for('register') }}" id="registerForm">
+                    <div class="form-group">
+                        <label for="email">Email address</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary toggle-password" type="button" onclick="togglePasswordVisibility('password')">
+                                    <i class="fa fa-eye-slash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="password-requirements" id="passwordRequirements"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary toggle-password" type="button" onclick="togglePasswordVisibility('confirm_password')">
+                                    <i class="fa fa-eye-slash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        function togglePasswordVisibility(fieldId) {
+            var passwordInput = document.getElementById(fieldId);
+            var toggleButton = passwordInput.nextElementSibling.querySelector('.toggle-password');
+
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                toggleButton.innerHTML = '<i class="fa fa-eye"></i>';
+            } else {
+                passwordInput.type = "password";
+                toggleButton.innerHTML = '<i class="fa fa-eye-slash"></i>';
+            }
+        }
+
+        var passwordInput = document.getElementById('password');
+        var confirmPasswordInput = document.getElementById('confirm_password');
+        var passwordRequirements = document.getElementById('passwordRequirements');
+
+        function checkPasswordStrength(password) {
+            var requirements = [];
+
+            if (password.length < 8) {
+                requirements.push('Must be at least 8 characters');
+            }
+            if (!password.match(/[a-z]/)) {
+                requirements.push('Must contain a lowercase letter');
+            }
+            if (!password.match(/[A-Z]/)) {
+                requirements.push('Must contain an uppercase letter');
+            }
+            if (!password.match(/[0-9]/)) {
+                requirements.push('Must contain a number');
+            }
+            if (!password.match(/[!@#$%^&*]/)) {
+                requirements.push('Must contain a special character');
+            }
+
+            return requirements;
+        }
+
+        passwordInput.addEventListener('input', function () {
+            var password = passwordInput.value;
+            var requirements = checkPasswordStrength(password);
+
+            if (requirements.length > 0) {
+                passwordRequirements.innerHTML = '<strong>Password Requirements:</strong><br>' + requirements.join('<br>');
+            } else {
+                passwordRequirements.innerHTML = '';
+            }
+        });
+
+        confirmPasswordInput.addEventListener('input', function () {
+            var confirmPassword = confirmPasswordInput.value;
+            var password = passwordInput.value;
+
+            if (confirmPassword !== password) {
+                confirmPasswordInput.setCustomValidity("Passwords don't match");
+            } else {
+                confirmPasswordInput.setCustomValidity("");
+            }
+        });
+    </script>
+</body>
+</html>
