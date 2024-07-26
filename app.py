@@ -4,36 +4,43 @@ from sendgrid.helpers.mail import Mail
 import re
 import random
 import string
+import os
+from dotenv import load_dotenv
+from datetime import datetime, timedelta
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'supersecretkey'
+app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
 # Configure SendGrid
-SENDGRID_API_KEY = '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'
-SENDER_EMAIL = 'sharmin@peakup.in'
+SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
+SENDER_EMAIL = os.getenv('SENDER_EMAIL')
 
 users = []
 
 def generate_secret_key():
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=6))
+    """Generate a random 6-digit secret key."""
+    return ''.join(random.choices(string.digits, k=6))
 
 def send_verification_email(email, secret_key):
+    """Send a verification email with the secret key."""
     message = Mail(
         from_email=SENDER_EMAIL,
         to_emails=email,
         subject='Roar.ai Email Verification',
-        html_content=f'Your verification code is: {secret_key}'
+        html_content=f'Your verification code is: <strong>{secret_key}</strong>'
     )
     try:
         sg = SendGridAPIClient(SENDGRID_API_KEY)
         response = sg.send(message)
-        print(response.status_code)
-        print(response.body)
-        print(response.headers)
+        print(f"Email sent: {response.status_code}")
     except Exception as e:
-        print(str(e))
+        print(f"Error sending email: {str(e)}")
 
 def is_strong_password(password):
+    """Check if the password meets strength requirements."""
     if len(password) < 8:
         return False
     if not re.search(r"[a-z]", password):
@@ -79,8 +86,15 @@ def register():
             flash('Passwords do not match')
             return redirect(url_for('register', plan=plan))
 
+        if any(user['email'] == email for user in users):
+            flash('An account with this email already exists. Please log in instead.')
+            return redirect(url_for('login'))
+
         secret_key = generate_secret_key()
-        session['temp_user'] = {'email': email, 'password': password, 'plan': plan, 'secret_key': secret_key}
+        session['temp_user'] = {
+            'email': email, 'password': password, 'plan': plan, 
+            'secret_key': secret_key, 'key_expiry': datetime.now() + timedelta(minutes=2)
+        }
         
         send_verification_email(email, secret_key)
         
@@ -91,17 +105,38 @@ def register():
 def verify_email():
     if request.method == 'POST':
         entered_key = request.form['secret_key']
-        if session['temp_user']['secret_key'] == entered_key:
-            users.append({
-                'email': session['temp_user']['email'],
-                'password': session['temp_user']['password'],
-                'plan': session['temp_user']['plan']
-            })
-            session.pop('temp_user', None)
-            return redirect(url_for('login'))
+        temp_user = session.get('temp_user')
+
+        if temp_user:
+            if temp_user['secret_key'] == entered_key:
+                if datetime.now() <= temp_user['key_expiry']:
+                    users.append({
+                        'email': temp_user['email'],
+                        'password': temp_user['password'],
+                        'plan': temp_user['plan']
+                    })
+                    session.pop('temp_user', None)
+                    return redirect(url_for('login'))
+                else:
+                    flash('Verification code expired. Please request a new code.')
+            else:
+                flash('Incorrect verification code.')
         else:
-            flash('Verification Failed')
+            flash('No verification request found.')
     return render_template('verify_email.html')
+
+@app.route('/resend_code', methods=['POST'])
+def resend_code():
+    temp_user = session.get('temp_user')
+    if temp_user:
+        secret_key = generate_secret_key()
+        temp_user['secret_key'] = secret_key
+        temp_user['key_expiry'] = datetime.now() + timedelta(minutes=2)
+        send_verification_email(temp_user['email'], secret_key)
+        return redirect(url_for('verify_email'))
+    else:
+        flash('No verification request found.')
+        return redirect(url_for('register'))
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -121,7 +156,7 @@ def forgot_password():
 def reset_password_verify():
     if request.method == 'POST':
         entered_key = request.form['secret_key']
-        if session['reset_user']['secret_key'] == entered_key:
+        if session.get('reset_user') and session['reset_user']['secret_key'] == entered_key:
             return redirect(url_for('reset_password'))
         else:
             flash('Verification Failed')
@@ -131,7 +166,7 @@ def reset_password_verify():
 def reset_password():
     if request.method == 'POST':
         new_password = request.form['password']
-        email = session['reset_user']['email']
+        email = session.get('reset_user', {}).get('email')
         user = next((user for user in users if user['email'] == email), None)
         if user:
             user['password'] = new_password
