@@ -7,6 +7,7 @@ import string
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+import pytz
 
 # Load environment variables from .env file
 load_dotenv()
@@ -93,7 +94,7 @@ def register():
         secret_key = generate_secret_key()
         session['temp_user'] = {
             'email': email, 'password': password, 'plan': plan, 
-            'secret_key': secret_key, 'key_expiry': datetime.now() + timedelta(minutes=2)
+            'secret_key': secret_key, 'key_expiry': datetime.now(pytz.utc) + timedelta(minutes=2)
         }
         
         send_verification_email(email, secret_key)
@@ -109,7 +110,7 @@ def verify_email():
 
         if temp_user:
             if temp_user['secret_key'] == entered_key:
-                if datetime.now() <= temp_user['key_expiry']:
+                if datetime.now(pytz.utc) <= temp_user['key_expiry']:
                     users.append({
                         'email': temp_user['email'],
                         'password': temp_user['password'],
@@ -131,7 +132,7 @@ def resend_code():
     if temp_user:
         secret_key = generate_secret_key()
         temp_user['secret_key'] = secret_key
-        temp_user['key_expiry'] = datetime.now() + timedelta(minutes=2)
+        temp_user['key_expiry'] = datetime.now(pytz.utc) + timedelta(minutes=2)
         send_verification_email(temp_user['email'], secret_key)
         return redirect(url_for('verify_email'))
     else:
