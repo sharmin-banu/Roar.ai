@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
+from flask_sqlalchemy import SQLAlchemy
 import re
 import random
 import string
@@ -19,8 +20,23 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY')
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
 SENDER_EMAIL = os.getenv('SENDER_EMAIL')
 
-users = []
+# Configure SQLAlchemy and SQLite database
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
+# Define the User model
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+    plan = db.Column(db.String(50))
+
+# Create the database
+with app.app_context():
+    db.create_all()
+
+# Helper functions
 def generate_secret_key():
     """Generate a random 6-digit secret key."""
     return ''.join(random.choices(string.digits, k=6))
@@ -54,6 +70,7 @@ def is_strong_password(password):
         return False
     return True
 
+# Routes
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -63,7 +80,7 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        user = next((user for user in users if user['email'] == email and user['password'] == password), None)
+        user = User.query.filter_by(email=email, password=password).first()
         if user:
             session['user'] = email
             return redirect(url_for('dashboard'))
@@ -87,7 +104,7 @@ def register():
             flash('Passwords do not match')
             return redirect(url_for('register', plan=plan))
 
-        if any(user['email'] == email for user in users):
+        if User.query.filter_by(email=email).first():
             flash('An account with this email already exists. Please log in instead.')
             return redirect(url_for('login'))
 
@@ -111,11 +128,13 @@ def verify_email():
         if temp_user:
             if temp_user['secret_key'] == entered_key:
                 if datetime.now(pytz.utc) <= temp_user['key_expiry']:
-                    users.append({
-                        'email': temp_user['email'],
-                        'password': temp_user['password'],
-                        'plan': temp_user['plan']
-                    })
+                    new_user = User(
+                        email=temp_user['email'],
+                        password=temp_user['password'],
+                        plan=temp_user['plan']
+                    )
+                    db.session.add(new_user)
+                    db.session.commit()
                     session.pop('temp_user', None)
                     return redirect(url_for('login'))
                 else:
@@ -143,11 +162,12 @@ def resend_code():
 def forgot_password():
     if request.method == 'POST':
         email = request.form['email']
-        user = next((user for user in users if user['email'] == email), None)
+        user = User.query.filter_by(email=email).first()
         if user:
             secret_key = generate_secret_key()
-            session['reset_user'] = {'email': email, 'secret_key': secret_key}
+            session['reset_user'] = {'email': email, 'secret_key': secret_key, 'key_expiry': datetime.now(pytz.utc) + timedelta(minutes=10)}
             send_verification_email(email, secret_key)
+            flash('A verification code has been sent to your email.')
             return redirect(url_for('reset_password_verify'))
         else:
             flash('Email not found')
@@ -157,22 +177,44 @@ def forgot_password():
 def reset_password_verify():
     if request.method == 'POST':
         entered_key = request.form['secret_key']
-        if session.get('reset_user') and session['reset_user']['secret_key'] == entered_key:
-            return redirect(url_for('reset_password'))
+        reset_user = session.get('reset_user')
+        if reset_user:
+            if reset_user['secret_key'] == entered_key:
+                if datetime.now(pytz.utc) <= reset_user['key_expiry']:
+                    return redirect(url_for('reset_password'))
+                else:
+                    flash('Verification code expired. Please request a new code.')
+                    return redirect(url_for('forgot_password'))
+            else:
+                flash('Incorrect verification code.')
         else:
-            flash('Verification Failed')
+            flash('No reset request found.')
     return render_template('reset_password_verify.html')
 
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
     if request.method == 'POST':
         new_password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        if new_password != confirm_password:
+            flash('Passwords do not match.')
+            return redirect(url_for('reset_password'))
+
+        if not is_strong_password(new_password):
+            flash('Password must be at least 8 characters long, contain an uppercase letter, a number, and a special character.')
+            return redirect(url_for('reset_password'))
+
         email = session.get('reset_user', {}).get('email')
-        user = next((user for user in users if user['email'] == email), None)
+        user = User.query.filter_by(email=email).first()
         if user:
-            user['password'] = new_password
+            user.password = new_password
+            db.session.commit()
             session.pop('reset_user', None)
+            flash('Your password has been successfully reset.')
             return redirect(url_for('login'))
+        else:
+            flash('No reset request found.')
+            return redirect(url_for('forgot_password'))
     return render_template('reset_password.html')
 
 @app.route('/dashboard')
