@@ -9,6 +9,7 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import pytz
+from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 
 # Load environment variables from .env file
 load_dotenv()
@@ -25,8 +26,12 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+# Configure Flask-Login
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
 # Define the User model
-class User(db.Model):
+class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
@@ -35,6 +40,10 @@ class User(db.Model):
 # Create the database
 with app.app_context():
     db.create_all()
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 # Helper functions
 def generate_secret_key():
@@ -80,9 +89,9 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        user = User.query.filter_by(email=email, password=password).first()
-        if user:
-            session['user'] = email
+        user = User.query.filter_by(email=email).first()
+        if user and user.password == password:
+            login_user(user)
             return redirect(url_for('dashboard'))
         else:
             flash('Invalid email or password')
@@ -218,15 +227,24 @@ def reset_password():
     return render_template('reset_password.html')
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
-    if 'user' in session:
-        return f"Welcome to your dashboard, {session['user']}!"
-    else:
-        return redirect(url_for('login'))
+    return render_template('dashboard.html', user=current_user)
 
 @app.route('/plans')
 def plans():
     return render_template('plans.html')
+
+@app.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html', user=current_user)
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(debug=True)
